@@ -11,6 +11,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.wpilibj.XboxController;
+import com.ctre.phoenix6.configs.Slot0Configs;
 
 
 import edu.wpi.first.math.MathUtil;
@@ -33,32 +34,43 @@ public class Robot extends TimedRobot {
 
   private final RobotContainer m_robotContainer;
  
+  // MARK: motor 
   // This is the motor. Uses a device ID of 6
   private final TalonFX shooterMotor1 = new TalonFX(18);
   private final TalonFX shooterMotor2 = new TalonFX(17);
   private final TalonFX intakeMotor = new TalonFX(19);
-  // This is the controller. Should be in port 0 on the driverstation
+
+    TalonFXConfiguration configs = new TalonFXConfiguration();
+
+  private final VelocityDutyCycle shooterVelocity = new VelocityDutyCycle(0);
+  private final VelocityDutyCycle intakeVelocity = new VelocityDutyCycle(0);
+
+
+// This is the controller. Should be in port 0 on the driverstation
+
+  private XboxController controller = new XboxController(0);
   private final Joystick gamepad1 = new Joystick(0);
-  
-  
   private double setSpeed = 0;
   
-private XboxController controller = new XboxController(0);
-  /**
-   * This function is run when the robot is first started up and should be used for any
-   * initialization code. ``12w111
-   */
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// constructor 
+public Robot() {
+
+        this.m_robotContainer = new RobotContainer();
+        Slot0Configs slot0 = new Slot0Configs();
+
+        slot0.kP = 0.1;
+        slot0.kI = 0;
+        slot0.kD = 0;
+        slot0.kV = 0.12;
+
+        shooterMotor1.getConfigurator().apply(slot0);
+        shooterMotor2.getConfigurator().apply(slot0);
+
+}
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-
-  public Robot() {
-    // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
-    // autonomous chooser on the dashboard.
-    m_robotContainer = new RobotContainer();
-
-  }
-
-  
   /**
    * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
    * that you want ran during disabled, autonomous, teleoperated and test.
@@ -121,14 +133,14 @@ private XboxController controller = new XboxController(0);
     intakeMotor.setNeutralMode(NeutralModeValue.Coast);
   
 
-// shooter2.restoreFactoryDefaults();
-// shooter2.setIdleMode(IdleMode.kCoast);
-// shooter2.setInverted(false); // flip to true if needed
+// shooterMotor2.restoreFactoryDefaults();
+// shooterMotor2.setIdleMode(IdleMode.kCoast);
+// shooterMotor2.setInverted(false); // flip to true if needed
 
 
     // This is the new and better way to invert the motor.
     // It takes the TalonFX config object, and sets the inverted value to whatever you want it to be.
-    config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+    //config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
 
     // This is how you tell the motor to use the config we set up above.
     shooterMotor1.getConfigurator().apply(config, 1);
@@ -173,8 +185,11 @@ private XboxController controller = new XboxController(0);
   setSpeed = 0.0;
 }
 
+
+// MARK: speed
+// temp commenting to maybe fix phantom motor output (no buttons pressed)
 shooterMotor1.set(setSpeed);
-shooterMotor2.set(0.8);
+// shooterMotor2.set(0.8);
 intakeMotor.set(setSpeed);
 
   
@@ -185,23 +200,38 @@ intakeMotor.set(setSpeed);
     SmartDashboard.putNumber("motor set speed", setSpeed);
 
 
-    double lt = controller.getLeftTriggerAxis();
+double lt = controller.getLeftTriggerAxis();
 double rt = controller.getRightTriggerAxis();
 
+
 // Intake motor (LT)
+// double intakeVel = lt * 100;
+
 if (lt > 0.2) {
-    intakeMotor.set(0.5);
+    intakeMotor.setControl(intakeVelocity.withVelocity(80));
 } else {
-    intakeMotor.set(0);
+    intakeMotor.setControl(intakeVelocity.withVelocity(0));
 }
 
+
 // Shooter motors (RT)
+// double velocity = rt * 100; // max 100 RPS
+
+// shooterMotor1.setControl(shooterVelocity.withVelocity(velocity));
+// shooterMotor2.setControl(shooterVelocity.withVelocity(velocity));
+
+/*  
+    withVelocity means rotations per second, examples: 
+    50 = slower shooter
+    80 = medium shooter
+    120 = fast shooter 
+*/
 if (rt > 0.2) {
-    shooterMotor1.set(1.0);
-    shooterMotor2.set(1.0);
+    shooterMotor1.setControl(shooterVelocity.withVelocity(100));
+    shooterMotor2.setControl(shooterVelocity.withVelocity(100));
 } else {
-    shooterMotor1.set(0);
-    shooterMotor2.set(0);
+    shooterMotor1.setControl(shooterVelocity.withVelocity(0));
+    shooterMotor2.setControl(shooterVelocity.withVelocity(0));
 }
 
   }
